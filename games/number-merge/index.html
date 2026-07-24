@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Number Merge</title>
+<meta name="description" content="同じ数字を集めて大きく育てる、シンプルなペールトーンの数字パズル">
+<meta name="theme-color" content="#f7f3ee">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Number Merge">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="top-row">
+    <div>
+      <a href="../../index.html" class="back-link" aria-label="ゲーム一覧に戻る">← 一覧</a>
+      <h1>Number<span>Merge</span></h1>
+      <div class="subtitle">同じ数字を集めて、大きく育てよう</div>
+    </div>
+    <div class="scores">
+      <div class="score-box">
+        <div class="label">Score</div>
+        <div class="value" id="score">0</div>
+      </div>
+      <div class="score-box">
+        <div class="label">Time</div>
+        <div class="value" id="time">0:00</div>
+      </div>
+      <div class="score-box">
+        <div class="label">Best</div>
+        <div class="value" id="best">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="group" aria-label="パズルボード">
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="overlay" id="overlay">
+        <div class="msg" id="overlay-msg">Game Over</div>
+        <div class="sub" id="overlay-sub">これ以上動かせません</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="hint">矢印キー / スワイプで操作</div>
+    <button class="reset" id="reset">はじめから</button>
+  </div>
+</div>
+
+<!-- サイト共通のサービスワーカー登録(ルートのsw.jsを1つだけ登録する) -->
+<script src="../../shared/register-sw.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
