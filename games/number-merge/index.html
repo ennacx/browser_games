@@ -22,45 +22,45 @@
 <body>
 
 <div class="app">
-  <div class="top-row">
-    <div>
-      <a href="../../index.html" class="back-link" aria-label="ゲーム一覧に戻る">← 一覧</a>
-      <h1>Number<span>Merge</span></h1>
-      <div class="subtitle">同じ数字を集めて、大きく育てよう</div>
+    <div class="top-row">
+        <div>
+            <a href="../../index.html" class="back-link" aria-label="ゲーム一覧に戻る">← 一覧</a>
+            <h1>Number<span>Merge</span></h1>
+            <div class="subtitle">同じ数字を集めて、大きく育てよう</div>
+        </div>
+        <div class="scores">
+            <div class="score-box">
+                <div class="label">Score</div>
+                <div class="value" id="score">0</div>
+            </div>
+            <div class="score-box">
+                <div class="label">Time</div>
+                <div class="value" id="time">0:00</div>
+            </div>
+            <div class="score-box">
+                <div class="label">Best</div>
+                <div class="value" id="best">0</div>
+            </div>
+        </div>
     </div>
-    <div class="scores">
-      <div class="score-box">
-        <div class="label">Score</div>
-        <div class="value" id="score">0</div>
-      </div>
-      <div class="score-box">
-        <div class="label">Time</div>
-        <div class="value" id="time">0:00</div>
-      </div>
-      <div class="score-box">
-        <div class="label">Best</div>
-        <div class="value" id="best">0</div>
-      </div>
-    </div>
-  </div>
 
-  <div class="board-wrap">
-    <div class="board" id="board" role="group" aria-label="パズルボード">
-      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-      <div class="overlay" id="overlay">
-        <div class="msg" id="overlay-msg">Game Over</div>
-        <div class="sub" id="overlay-sub">これ以上動かせません</div>
-      </div>
+    <div class="board-wrap">
+        <div class="board" id="board" role="group" aria-label="パズルボード">
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="overlay" id="overlay">
+                <div class="msg" id="overlay-msg">Game Over</div>
+                <div class="sub" id="overlay-sub">これ以上動かせません</div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div class="controls">
-    <div class="hint">矢印キー / スワイプで操作</div>
-    <button class="reset" id="reset">はじめから</button>
-  </div>
+    <div class="controls">
+        <div class="hint">矢印キー / スワイプで操作</div>
+        <button class="reset" id="reset">はじめから</button>
+    </div>
 </div>
 
 <!-- サイト共通のサービスワーカー登録(ルートのsw.jsを1つだけ登録する) -->

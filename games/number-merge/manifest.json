@@ -1,7 +1,7 @@
 {
   "name": "Number Merge",
   "short_name": "NumMerge",
-  "description": "同じ数字を集めて大きく育てる、シンプルなペールトーンの数字パズル",
+  "description": "同じ数字を集めて大きく育てる、シンプルな数字パズル",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

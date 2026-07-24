@@ -1,6 +1,6 @@
 {
-  "name": "Game",
-  "short_name": "Game",
+  "name": "Simple browser game",
+  "short_name": "Simple browser game",
   "description": "ちょっとした空き時間に遊べる、シンプルなゲーム集",
   "start_url": "./index.html",
   "scope": "./",
