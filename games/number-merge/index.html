@@ -34,35 +34,31 @@
             <div class="scores">
                 <div class="score-box">
                     <div class="label">Score</div>
-                    <div class="value" id="score">0</div>
+                    <div id="score" class="value">0</div>
                 </div>
                 <div class="score-box">
                     <div class="label">Time</div>
-                    <div class="value" id="time">0:00</div>
+                    <div id="time" class="value">0:00</div>
                 </div>
                 <div class="score-box">
                     <div class="label">Best</div>
-                    <div class="value" id="best">0</div>
+                    <div id="best" class="value">0</div>
                 </div>
             </div>
         </div>
 
         <div class="board-wrap">
-            <div class="board" id="board" role="group" aria-label="パズルボード">
-                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-                <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-                <div class="overlay" id="overlay">
-                    <div class="msg" id="overlay-msg">Game Over</div>
-                    <div class="sub" id="overlay-sub">これ以上動かせません</div>
+            <div id="board" class="board" role="group" aria-label="パズルボード">
+                <div id="overlay" class="overlay">
+                    <div id="overlay-msg" class="msg">Game Over</div>
+                    <div id="overlay-sub" class="sub">これ以上動かせません</div>
                 </div>
             </div>
         </div>
 
         <div class="controls">
             <div class="hint">矢印キー / スワイプで操作</div>
-            <button class="reset" id="reset">はじめから</button>
+            <button id="reset" class="reset">はじめから</button>
         </div>
     </div>
 
