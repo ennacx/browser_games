@@ -1,16 +1,18 @@
 (function () {
     const SIZE = 5;
     const CELL_GAP = 10; // px
+
     const CLEAR_SCORE = 2048;
 
-    const boardEl    = document.getElementById('board');
-    const scoreEl    = document.getElementById('score');
-    const bestEl     = document.getElementById('best');
-    const timeEl     = document.getElementById('time');
-    const overlayEl  = document.getElementById('overlay');
-    const overlayMsg = document.getElementById('overlay-msg');
-    const overlaySub = document.getElementById('overlay-sub');
-    const resetBtn   = document.getElementById('reset');
+    const boardEl     = document.getElementById('board');
+    const scoreEl     = document.getElementById('score');
+    const bestEl      = document.getElementById('best');
+    const timeEl      = document.getElementById('time');
+    const overlayEl   = document.getElementById('overlay');
+    const overlayMsg  = document.getElementById('overlay-msg');
+    const overlaySub  = document.getElementById('overlay-sub');
+    const continueBtn = document.getElementById('continue');
+    const resetBtn    = document.getElementById('reset');
 
     const keyMap = {
         // 十字キー
@@ -22,6 +24,7 @@
         w: 'up', s: 'down'
     };
 
+    // LocalStorageのキー名
     const STORAGE_KEY = 'numberMerge.save.v1';
 
     const TILE_COLORS = {};
@@ -29,6 +32,7 @@
         TILE_COLORS[i] = [`--t${i}`, `--t${i}-ink`];
     }
 
+    // セルの描画に関するCSS設定周りを反映
     document.documentElement.style.setProperty('--board-size', String(SIZE));
     document.documentElement.style.setProperty('--cell-gap', `${CELL_GAP}px`);
 
@@ -45,7 +49,17 @@
         boardEl.append(cell);
     }
 
-    let grid, score, best, elapsed, won, over, cellSize, timerHandle;
+    // グリッド周り
+    let grid, cellSize;
+    // スコア周り
+    let score, best;
+    // 経過時間とタイマーのハンドラーID
+    let elapsed, timerHandle;
+    // クリア・ゲームオーバーのフラグ
+    let won, over;
+
+    // クリア後にゲームを続行できるようにするための独立フラグ
+    let clearReachedThisMove = false;
 
     // localStorage を試すが、使えない環境(プライベートモードや埋め込みプレビューなど)では
     // 静かにメモリ上だけの保持にフォールバックする。
@@ -70,7 +84,7 @@
     }
 
     function persist() {
-        const data = { grid, score, best, elapsed, won, over };
+        const data = { grid, score, best, elapsed, won, over, clearCanContinue: true };
         memoryFallback = data;
 
         try {
@@ -129,6 +143,7 @@
 
         won  = false;
         over = false;
+        clearReachedThisMove = false;
 
         overlayEl.classList.remove('show');
 
@@ -159,13 +174,21 @@
             won  = !!saved.won;
             over = !!saved.over;
 
+            clearReachedThisMove = won && over && (saved.clearCanContinue !== true);
+            if (clearReachedThisMove) {
+                over = false;
+            }
+
             render();
             updateTimeDisplay();
 
             if (over) {
-                showOverlay();
+                showOverlay('over');
             } else {
                 startTimer();
+                if (clearReachedThisMove) {
+                    checkGameOver();
+                }
             }
         } else {
             startNewGame();
@@ -300,8 +323,9 @@
                 merged.push(val);
                 gained += val;
 
-                if (val === CLEAR_SCORE) {
+                if (val === CLEAR_SCORE && !won) {
                     won = true;
+                    clearReachedThisMove = true;
                 }
 
                 i++;
@@ -351,9 +375,13 @@
         if (over) {
             return;
         }
+        if (overlayEl.classList.contains('show')) {
+            return;
+        }
 
         let moved  = false;
         let gained = 0; // スコア加算分
+        clearReachedThisMove = false;
 
         for (let i = 0; i < SIZE; i++) {
             // グリッド→ライン変換
@@ -388,6 +416,16 @@
     }
 
     function checkGameOver() {
+        if (clearReachedThisMove) {
+            clearReachedThisMove = false;
+
+            stopTimer();
+            showOverlay('clear');
+            persist();
+
+            return;
+        }
+
         for (let r = 0; r < SIZE; r++) {
             for (let c = 0; c < SIZE; c++) {
                 // 空きセルがある場合は続行可能
@@ -411,14 +449,23 @@
         over = true;
 
         stopTimer();
-        showOverlay();
+        showOverlay('over');
     }
 
-    function showOverlay() {
-        overlayMsg.textContent = (won) ? "クリア!" : "Game Over";
-        overlaySub.textContent = (won) ? `${CLEAR_SCORE}を達成しました` : "これ以上動かせません";
+    function showOverlay(type) {
+        const isClear = (type === 'clear');
+
+        overlayMsg.textContent = (isClear) ? "クリア!" : "Game Over";
+        overlaySub.textContent = (isClear) ? `${CLEAR_SCORE}を達成しました` : "これ以上動かせません";
+        continueBtn.hidden = (!isClear);
 
         overlayEl.classList.add('show');
+    }
+
+    function hideOverlay() {
+        overlayEl.classList.remove('show');
+
+        checkGameOver();
     }
 
     /*
@@ -501,6 +548,15 @@
 
     // はじめからボタン押下
     resetBtn.addEventListener('click', startNewGame);
+    // つづけるボタン押下
+    continueBtn.addEventListener('click', () => {
+        hideOverlay();
+
+        // タイマー再開
+        if (!over && timerHandle === null) {
+            startTimer();
+        }
+    });
 
     // リサイズ時のレンダリング
     window.addEventListener('resize', () => render());

@@ -212,7 +212,7 @@ h1 span {
   font-size: 12px;
 }
 
-button.reset {
+button.reset, button.continue {
   padding: 9px 18px;
   border: none;
   border-radius: 10px;
@@ -225,13 +225,13 @@ button.reset {
   letter-spacing: 0.02em;
   transition: filter 0.15s ease, transform 0.1s ease;
 }
-button.reset:hover {
+button.reset:hover, button.continue:hover {
   filter: brightness(1.06);
 }
-button.reset:active {
+button.reset:active, button.continue:active {
   transform: scale(0.97);
 }
-button.reset:focus-visible {
+button.reset:focus-visible, button.continue:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
