@@ -7,22 +7,26 @@
   --shadow: rgba(107, 98, 89, 0.12);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body { height: 100%; }
+html, body {
+  height: 100%;
+}
 
 body {
-  margin: 0;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  background-image: radial-gradient(circle at 1px 1px, rgba(107,98,89,0.06) 1px, transparent 0);
-  background-size: 22px 22px;
-  font-family: 'Quicksand', sans-serif;
-  color: var(--ink);
+  margin: 0;
   padding: 32px 16px;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 1px 1px, rgba(107, 98, 89, 0.06) 1px, transparent 0);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: "Quicksand", sans-serif;
 }
 
 .hub {
@@ -31,37 +35,37 @@ body {
 }
 
 h1 {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  font-size: 26px;
-  font-weight: 700;
   margin: 0 0 4px;
   color: #5b5248;
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
 }
 
 .hub-subtitle {
-  font-size: 13px;
-  color: var(--ink-soft);
   margin: 0 0 24px;
+  color: var(--ink-soft);
+  font-size: 13px;
   letter-spacing: 0.02em;
 }
 
 .game-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
   gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .game-card {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 14px 16px;
   background: var(--card);
   border-radius: 16px;
-  padding: 14px 16px;
-  text-decoration: none;
   color: var(--ink);
+  text-decoration: none;
   box-shadow: 0 4px 16px var(--shadow);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -73,23 +77,20 @@ h1 {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-.game-thumb {
+.game-card .game-thumb {
   width: 48px;
   height: 48px;
   border-radius: 12px;
   flex-shrink: 0;
   object-fit: cover;
 }
-
-.game-name {
-  font-family: 'Zen Maru Gothic', sans-serif;
+.game-card .game-name {
+  color: #5b5248;
+  font-family: "Zen Maru Gothic", sans-serif;
   font-weight: 700;
   font-size: 16px;
-  color: #5b5248;
 }
-
-.game-desc {
+.game-card .game-desc {
   font-size: 12px;
   color: var(--ink-soft);
   margin-top: 2px;
@@ -100,3 +101,5 @@ h1 {
   color: var(--ink-soft);
   margin-top: 20px;
 }
+
+/*# sourceMappingURL=hub.css.map */
