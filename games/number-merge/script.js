@@ -9,9 +9,13 @@
     const bestEl      = document.getElementById('best');
     const timeEl      = document.getElementById('time');
     const overlayEl   = document.getElementById('overlay');
+
     const overlayMsg  = document.getElementById('overlay-msg');
     const overlaySub  = document.getElementById('overlay-sub');
+
     const continueBtn = document.getElementById('continue');
+    const undoBtn     = document.getElementById('undo');
+    const redoBtn     = document.getElementById('redo');
     const resetBtn    = document.getElementById('reset');
 
     const keyMap = {
@@ -42,7 +46,7 @@
         LINE_MAP_BASE.push(i);
     }
 
-    for (let i = 0; i < (SIZE * SIZE); i++) {
+    for (let i = 0; i < (SIZE ** 2); i++) {
         const cell = document.createElement('div');
         cell.classList.add('cell');
 
@@ -61,10 +65,19 @@
     // クリア後にゲームを続行できるようにするための独立フラグ
     let clearReachedThisMove = false;
 
-    // localStorage を試すが、使えない環境(プライベートモードや埋め込みプレビューなど)では
+    // アンドゥ・リドゥの状態
+    let undoState = null;
+    let redoState = null;
+
+    // localStorage を試すが、使えない環境 (プライベートモードや埋め込みプレビューなど) では
     // 静かにメモリ上だけの保持にフォールバックする。
     let memoryFallback = null;
 
+    /**
+     * localStorageまたはメモリ上からゲーム状態を読み込む
+     *
+     * @return {object|null}
+     */
     function loadSaved() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -83,17 +96,27 @@
         }
     }
 
+    /**
+     * ゲーム状態をlocalStorageに保存する (フォールバックとしてメモリ上にも保持)
+     */
     function persist() {
-        const data = { grid, score, best, elapsed, won, over, clearCanContinue: true };
+        const data = { grid, score, best, elapsed, won, over, undoState, redoState, overlayType: getOverlayType(), clearCanContinue: true };
+
+        // フォールバック用にメモリ上にも保持
         memoryFallback = data;
 
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
-            // 保存できない環境ではメモリ保持のみ(このタブを閉じるまで有効)
+            // 保存できない環境ではメモリ保持のみ (このタブを閉じるまで有効)
         }
     }
 
+    /**
+     * 秒数を `m:ss` 形式にフォーマットする
+     * @param {number} sec
+     * @return {string}
+     */
     function formatTime(sec) {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
@@ -101,10 +124,16 @@
         return m + ':' + String(s).padStart(2, '0');
     }
 
+    /**
+     * 経過時間を表示する
+     */
     function updateTimeDisplay() {
         timeEl.textContent = formatTime(elapsed);
     }
 
+    /**
+     * タイマーを停止する
+     */
     function stopTimer() {
         if (timerHandle) {
             clearInterval(timerHandle);
@@ -112,28 +141,145 @@
         }
     }
 
+    /**
+     * タイマーを開始する
+     */
     function startTimer() {
         stopTimer();
 
         timerHandle = setInterval(() => {
+            // ゲームオーバー状態なら経過時間を更新しない
             if (over) {
                 return;
             }
 
             elapsed++;
 
+            // 経過時間を更新
             updateTimeDisplay();
+            // ストレージに状態を保存
             persist();
         }, 1000);
     }
 
+    /**
+     * グリッドの初期化
+     */
     function initGrid() {
         grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
     }
 
     /**
+     * グリッドのディープコピー (clone)
+     *
+     * @param {number[][]} src
+     * @return {number[][]}
+     */
+    function cloneGrid(src) {
+        return src.map((row) => row.slice());
+    }
+
+    /**
+     * アンドゥ・リドゥで管理するオブジェクトの生成
+     *
+     * @return {{grid: number[][], score: number, won: boolean, over: boolean, overlayType: string|null}}
+     */
+    function createHistoryState() {
+        return {
+            grid: cloneGrid(grid),
+            score,
+            won,
+            over,
+            overlayType: getOverlayType()
+        };
+    }
+
+    /**
+     * オーバーレイ表示時にどの種類のオーバーレイが表示されているかを判定
+     *
+     * @return {string|null}
+     */
+    function getOverlayType() {
+        if (!overlayEl.classList.contains('show')) {
+            return null;
+        }
+
+        return (continueBtn.hidden) ? 'over' : 'clear';
+    }
+
+    /**
+     * アンドゥ・リドゥの状態判定
+     *
+     * @param {*} state
+     * @return {boolean}
+     */
+    function isValidHistoryState(state) {
+        return (
+            !!state
+            && Array.isArray(state.grid)
+            && state.grid.length === SIZE
+            && state.grid.every((row) => Array.isArray(row) && row.length === SIZE)
+        );
+    }
+
+    /**
+     * アンドゥ・リドゥボタンの有効化/無効化
+     */
+    function updateHistoryButtons() {
+        undoBtn.disabled = !undoState;
+        redoBtn.disabled = !redoState;
+    }
+
+    /**
+     * アンドゥ・リドゥ時のタイマー同期
+     *
+     * ゲームオーバー時やオーバーレイ表示中はタイマーを停止する。
+     * プレイ可能な状態でタイマーが止まっていれば再開する。
+     */
+    function syncTimerAfterRestore() {
+        if (over || overlayEl.classList.contains('show')) {
+            stopTimer();
+        } else if (timerHandle === null) {
+            startTimer();
+        }
+    }
+
+    /**
+     * アンドゥ・リドゥボタン押下時の状態復元
+     *
+     * @param {{grid: number[][], score: number, won: boolean, over: boolean, overlayType: string|null}} state
+     */
+    function restoreHistoryState(state) {
+        grid  = cloneGrid(state.grid);
+        score = (typeof state.score === 'number') ? state.score : 0;
+        won   = !!state.won;
+        over  = !!state.over;
+        clearReachedThisMove = false;
+
+        // 画面に反映
+        render();
+
+        if (state.overlayType === 'clear') {
+            showOverlay('clear');
+        } else if (over || state.overlayType === 'over') {
+            showOverlay('over');
+        } else {
+            overlayEl.classList.remove('show');
+        }
+
+        // タイマー同期
+        syncTimerAfterRestore();
+        // アンドゥ・リドゥボタンの有効化/無効化
+        updateHistoryButtons();
+        // ストレージに状態を保存
+        persist();
+    }
+
+    /**
      * 新規ゲーム
-     * グリッドとスコア、経過時間を初期化する。ハイスコアは維持する。
+     *
+     * グリッドとスコア、経過時間を初期化する。
+     * ハイスコアは維持する。
      */
     function startNewGame() {
         initGrid();
@@ -145,22 +291,32 @@
         over = false;
         clearReachedThisMove = false;
 
+        undoState = null;
+        redoState = null;
+
         overlayEl.classList.remove('show');
 
-        addRandomTile();
-        addRandomTile();
+        // タイルをランダム位置に追加
+        for (let i = 0; i < 2; i++) {
+            addRandomTile();
+        }
 
+        // 画面に反映
         render();
+        // 経過時間を表示
         updateTimeDisplay();
-
+        // ストレージに状態を保存
         persist();
+        // アンドゥ・リドゥボタンの有効化/無効化
+        updateHistoryButtons();
 
         startTimer();
     }
 
     /**
      * ページ読み込み時
-     * 保存データがあれば続きから、なければ新規開始
+     *
+     * 保存データがあれば続きから、なければ新規開始する。
      */
     function restoreOrStart() {
         const saved = loadSaved();
@@ -179,14 +335,36 @@
                 over = false;
             }
 
-            render();
-            updateTimeDisplay();
+            // アンドゥ・リドゥの状態を復元
+            undoState = (isValidHistoryState(saved.undoState)) ? saved.undoState : null;
+            redoState = (isValidHistoryState(saved.redoState)) ? saved.redoState : null;
 
-            if (over) {
+            // オーバーレイの状態を復元
+            const savedOverlayType = (saved.overlayType === 'clear' || saved.overlayType === 'over') ? saved.overlayType : null;
+
+            // 画面に反映
+            render();
+            // 経過時間を表示
+            updateTimeDisplay();
+            // アンドゥ・リドゥボタンの有効化/無効化
+            updateHistoryButtons();
+
+            // ゲームオーバー判定またはゲームオーバーのオーバーレイが有効
+            if (over || savedOverlayType === 'over') {
                 showOverlay('over');
-            } else {
+                stopTimer();
+            }
+            // ゲームクリアのオーバーレイが有効
+            else if (savedOverlayType === 'clear') {
+                showOverlay('clear');
+                stopTimer();
+            }
+            // その他 (ゲーム続行可能)
+            else {
                 startTimer();
+
                 if (clearReachedThisMove) {
+                    // ゲームオーバー判定
                     checkGameOver();
                 }
             }
@@ -195,10 +373,16 @@
         }
     }
 
+    /**
+     * 描画済みの数値タイルを削除する
+     */
     function clearTiles() {
         boardEl.querySelectorAll('.tile').forEach((t) => t.remove());
     }
 
+    /**
+     * 数値の入っていないセルへランダムに数値タイルを配置
+     */
     function addRandomTile() {
         const empties = [];
 
@@ -221,12 +405,21 @@
         grid[r][c] = (Math.random() < 0.9) ? 2 : 4;
     }
 
+    /**
+     * 盤面のサイズを測定し、各セルのサイズを計算
+     */
     function measure() {
         const rect = boardEl.getBoundingClientRect();
 
         cellSize = (rect.width - CELL_GAP * (SIZE - 1)) / SIZE;
     }
 
+    /**
+     * 引数の値に対応するタイル色を返す
+     *
+     * @param {number} val - タイルの数値
+     * @return {{bg: string, ink: string}} - 数値に応じた背景色と文字色
+     */
     function tileStyle(val) {
         const key    = (TILE_COLORS[val]) ? val : 'hi';
         const bgVar  = (key === 'hi') ? '--thi'     : TILE_COLORS[val][0];
@@ -235,20 +428,29 @@
         return { bg: `var(${bgVar})`, ink: `var(${inkVar})` };
     }
 
+    /**
+     * 桁数に応じたタイル数値のフォントサイズ調整
+     *
+     * @param {number} val
+     * @return {number}
+     */
     function fontSizeFor(val) {
-        const s = String(val).length;
-
-        if (s <= 1) {
-            return cellSize * 0.42;
-        } else if (s === 2) {
-            return cellSize * 0.38;
-        } else if (s === 3) {
-            return cellSize * 0.32;
+        switch (String(val).length) {
+            case 0:
+            case 1:
+                return cellSize * 0.42;
+            case 2:
+                return cellSize * 0.38;
+            case 3:
+                return cellSize * 0.32;
+            default:
+                return cellSize * 0.26;
         }
-
-        return cellSize * 0.26;
     }
 
+    /**
+     * 現在のグリッド・スコア・ベストスコアを画面に反映する
+     */
     function render() {
         measure();
         clearTiles();
@@ -286,6 +488,13 @@
         bestEl.textContent  = String(best);
     }
 
+    /**
+     * 移動した方向に応じて行または列のタイルを変換
+     *
+     * @param {string} dir - 移動方向 ('left', 'right', 'up', or 'down').
+     * @param {number} i - 変換対象の行または列のインデックス
+     * @return {Array|null} 変換後の配列 (指定外操作の場合は`null`)
+     */
     function convertLineFromGrid(dir, i) {
         let line;
 
@@ -309,6 +518,12 @@
         return line;
     }
 
+    /**
+     * 移動に応じた行又は列内の数値の移動と合算
+     *
+     * @param {number[]} line
+     * @return {{merged: number[], gained: number}}
+     */
     function slideLine(line) {
         const nums   = line.filter((v) => (v !== 0));
         const merged = [];
@@ -342,6 +557,13 @@
         return { merged, gained };
     }
 
+    /**
+     * 移動に応じた行または列内の合致判定
+     *
+     * @param {number[]} a
+     * @param {number[]} b
+     * @return {boolean}
+     */
     function linesEqual(a, b) {
         for (let i = 0; i < a.length; i++) {
             if (a[i] !== b[i]) {
@@ -352,6 +574,13 @@
         return true;
     }
 
+    /**
+     * ラインからグリッドへの変換
+     *
+     * @param {string} dir
+     * @param {number[]} line
+     * @param {number} i
+     */
     function convertGridFromLine(dir, line, i) {
 
         // 右もしくは下移動は逆転させて元に戻す
@@ -371,6 +600,11 @@
         }
     }
 
+    /**
+     * 移動操作時の処理
+     *
+     * @param {string} dir
+     */
     function move(dir) {
         if (over) {
             return;
@@ -381,6 +615,10 @@
 
         let moved  = false;
         let gained = 0; // スコア加算分
+
+        // 移動判定前に状態を保持
+        const previousState = createHistoryState();
+
         clearReachedThisMove = false;
 
         for (let i = 0; i < SIZE; i++) {
@@ -404,23 +642,37 @@
         }
 
         if (moved) {
+            // 移動成功時には直前をアンドゥに保持させ、リドゥを初期化
+            undoState = previousState;
+            redoState = null;
+
             if(gained > 0) {
                 score += gained;
             }
 
+            // タイルをランダム位置に追加
             addRandomTile();
+            // 画面に反映
             render();
+            // ゲームオーバー判定
             checkGameOver();
+            // ストレージに状態を保存
             persist();
+            // アンドゥ・リドゥボタンの有効化/無効化
+            updateHistoryButtons();
         }
     }
 
+    /**
+     * クリア通知またはゲームオーバーを判定する
+     */
     function checkGameOver() {
         if (clearReachedThisMove) {
             clearReachedThisMove = false;
 
             stopTimer();
             showOverlay('clear');
+            // ストレージに状態を保存
             persist();
 
             return;
@@ -452,6 +704,11 @@
         showOverlay('over');
     }
 
+    /**
+     * オーバーレイ表示
+     *
+     * @param {'clear'|'over'} type
+     */
     function showOverlay(type) {
         const isClear = (type === 'clear');
 
@@ -462,16 +719,68 @@
         overlayEl.classList.add('show');
     }
 
+    /**
+     * オーバーレイ非表示
+     */
     function hideOverlay() {
         overlayEl.classList.remove('show');
 
+        // ゲームオーバー判定
         checkGameOver();
+    }
+
+    /**
+     * アンドゥ時の処理
+     */
+    function undoMove() {
+        if (!undoState) {
+            return;
+        }
+
+        const state = undoState;
+        undoState = null;
+
+        redoState = createHistoryState();
+
+        restoreHistoryState(state);
+    }
+
+    /**
+     * リドゥ時の処理
+     */
+    function redoMove() {
+        if (!redoState) {
+            return;
+        }
+
+        const state = redoState;
+        redoState = null;
+
+        undoState = createHistoryState();
+
+        restoreHistoryState(state);
     }
 
     /*
      * キー操作
      */
     window.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if ((e.ctrlKey || e.metaKey) && key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                redoMove();
+            } else {
+                undoMove();
+            }
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && key === 'y') {
+            e.preventDefault();
+            redoMove();
+            return;
+        }
+
         const dir = keyMap[e.key];
         if (dir) {
             e.preventDefault();
@@ -548,6 +857,10 @@
 
     // はじめからボタン押下
     resetBtn.addEventListener('click', startNewGame);
+    // アンドゥボタン押下
+    undoBtn.addEventListener('click', undoMove);
+    // リドゥボタン押下
+    redoBtn.addEventListener('click', redoMove);
     // つづけるボタン押下
     continueBtn.addEventListener('click', () => {
         hideOverlay();
@@ -559,12 +872,13 @@
     });
 
     // リサイズ時のレンダリング
-    window.addEventListener('resize', () => render());
+    window.addEventListener('resize', render);
 
     // ページ非表示時の状態保存
     window.addEventListener('pagehide', persist);
     window.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
+            // ストレージに状態を保存
             persist();
         }
     });

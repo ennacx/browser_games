@@ -201,10 +201,19 @@ h1 span {
   }
 }
 .controls {
-  margin-top: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.controls .button-groups {
+  display: flex;
+  gap: 12px;
+}
+.controls .button-groups .history-buttons {
+  display: flex;
+  gap: 6px;
 }
 
 .hint {
@@ -212,7 +221,7 @@ h1 span {
   font-size: 12px;
 }
 
-button.reset, button.continue {
+button.reset, button.continue, button.history-button {
   padding: 9px 18px;
   border: none;
   border-radius: 10px;
@@ -225,15 +234,21 @@ button.reset, button.continue {
   letter-spacing: 0.02em;
   transition: filter 0.15s ease, transform 0.1s ease;
 }
-button.reset:hover, button.continue:hover {
+button.reset:hover, button.continue:hover, button.history-button:hover {
   filter: brightness(1.06);
 }
-button.reset:active, button.continue:active {
+button.reset:active, button.continue:active, button.history-button:active {
   transform: scale(0.97);
 }
-button.reset:focus-visible, button.continue:focus-visible {
+button.reset:focus-visible, button.continue:focus-visible, button.history-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+button.reset:disabled, button.continue:disabled, button.history-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+  filter: saturate(0.4);
+  transform: none;
 }
 
 .overlay {
