@@ -765,19 +765,29 @@
      * キー操作
      */
     window.addEventListener('keydown', (e) => {
+        // 入力キー判定と小文字変換
         const key = e.key.toLowerCase();
+
+        // Ctrl/Cmd + Z
         if ((e.ctrlKey || e.metaKey) && key === 'z') {
             e.preventDefault();
+
+            // Ctrl/Cmd + Shift + Z
             if (e.shiftKey) {
                 redoMove();
             } else {
                 undoMove();
             }
+
             return;
         }
+
+        // Ctrl/Cmd + Y
         if ((e.ctrlKey || e.metaKey) && key === 'y') {
             e.preventDefault();
+
             redoMove();
+
             return;
         }
 
@@ -797,6 +807,9 @@
         const boardWrap = document.querySelector('.board-wrap');
         let touchStartX = 0, touchStartY = 0, tracking = false;
 
+        /*
+         * タッチ操作開始
+         */
         boardWrap.addEventListener('touchstart', (e) => {
             if (e.touches.length !== 1) {
                 return;
@@ -806,8 +819,11 @@
 
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
-        }, {passive: false});
+        }, { passive: false });
 
+        /*
+         * タッチ操作中
+         */
         boardWrap.addEventListener('touchmove', (e) => {
             if (!tracking) {
                 return;
@@ -815,8 +831,11 @@
 
             // ページのスクロールやブラウザのスワイプナビゲーションに渡さない
             e.preventDefault();
-        }, {passive: false});
+        }, { passive: false });
 
+        /*
+         * タッチ操作終了
+         */
         boardWrap.addEventListener('touchend', (e) => {
             if (!tracking) {
                 return;
@@ -848,11 +867,14 @@
             } else {
                 move((dy > 0) ? 'down' : 'up');
             }
-        }, {passive: false});
+        }, { passive: false });
 
+        /*
+         * タッチ操作中断 (タッチ操作が取り消される可能性のあるハードウェアに対するフォールバック)
+         */
         boardWrap.addEventListener('touchcancel', () => {
             tracking = false;
-        }, {passive: true});
+        }, { passive: true });
     }
 
     // はじめからボタン押下
