@@ -1,8 +1,14 @@
 (function () {
+    // 盤面サイズ
     const SIZE = 5;
-    const CELL_GAP = 10; // px
 
-    const CLEAR_SCORE = 2048;
+    // セル間の隙間
+    const CELL_GAP_BASE = 12; // 基数
+    const CELL_GAP_COEFFICIENT = 1.2; // 係数
+    const CELL_GAP = CELL_GAP_BASE - Math.ceil((SIZE - 4) * CELL_GAP_COEFFICIENT); // px
+
+    // クリアスコア
+    const CLEAR_SCORE = 2048; // 2の指数であること
 
     const boardEl     = document.getElementById('board');
     const scoreEl     = document.getElementById('score');
