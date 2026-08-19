@@ -302,12 +302,17 @@
             el.className = 'cell covered';
             el.innerHTML = (data.flag) ? flagSVG() : '';
 
-            if (gameOver && data.mine && !data.flag) {
-                el.classList.add('open','mine');
-                el.innerHTML = mineSVG();
-            }
-            if (gameOver && data.flag && !data.mine) {
-                el.style.outline = '2px solid var(--t16-ink)';
+            // 失敗時
+            if (result === 'dead') {
+                // 隠されている地雷を表示
+                if (!data.flag && data.mine) {
+                    el.classList.add('open', 'mine');
+                    el.innerHTML = mineSVG();
+                }
+                // 間違えて立てているフラグをアウトラインでハイライト
+                else if (data.flag && !data.mine) {
+                    el.style.outline = '2px solid var(--t16-ink)';
+                }
             }
         }
     }
