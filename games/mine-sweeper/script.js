@@ -7,7 +7,10 @@
     const HOLD_MS        = 480;
     const MOVE_CANCEL_PX = 10;
 
-    let cfg            = SECTORS.small;
+    const STORAGE_KEY    = 'mineSweeper.save.v1';
+
+    let sectorKey      = 'small';
+    let cfg            = SECTORS[sectorKey];
     let grid           = [];
     let firstClickDone = false;
     let gameOver       = false;
@@ -15,6 +18,9 @@
     let flags          = 0;
     let timerId        = null;
     let seconds        = 0;
+
+    let result          = null;
+    let memoryFallback  = null;
 
     const boardEl     = document.getElementById('board');
     const mineCountEl = document.getElementById('mineCount');
@@ -62,6 +68,97 @@
 
             grid.push(row);
         }
+    }
+
+    function loadSaved() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return memoryFallback;
+            }
+
+            const data = JSON.parse(raw);
+            if (!data || !SECTORS[data.sector] || !Array.isArray(data.cells)) {
+                return memoryFallback;
+            }
+
+            return data;
+        } catch (e) {
+            return memoryFallback;
+        }
+    }
+
+    function createCellStates() {
+        const cells = [];
+
+        for (let r = 0; r < cfg.rows; r++) {
+            for (let c = 0; c < cfg.cols; c++) {
+                const data = getCellData(r, c);
+                cells.push({
+                    r,
+                    c,
+                    mine: !!data.mine,
+                    count: data.count,
+                    open: !!data.open,
+                    flag: !!data.flag,
+                    trigger: !!data.trigger
+                });
+            }
+        }
+
+        return cells;
+    }
+
+    function persist() {
+        const data = {
+            sector: sectorKey,
+            cells: createCellStates(),
+            firstClickDone,
+            gameOver,
+            opened,
+            flags,
+            seconds,
+            result
+        };
+
+        memoryFallback = data;
+
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            // 保存できない環境ではメモリ保持のみ (このタブを閉じるまで有効)
+        }
+    }
+
+    function restoreCells(cells) {
+        buildGrid();
+
+        for (const cell of cells) {
+            if (
+                typeof cell.r !== 'number'
+                || typeof cell.c !== 'number'
+                || cell.r < 0
+                || cell.r >= cfg.rows
+                || cell.c < 0
+                || cell.c >= cfg.cols
+            ) {
+                continue;
+            }
+
+            setCellData(cell.r, cell.c, {
+                mine: !!cell.mine,
+                count: (typeof cell.count === 'number') ? cell.count : 0,
+                open: !!cell.open,
+                flag: !!cell.flag,
+                trigger: !!cell.trigger
+            });
+        }
+    }
+
+    function syncSectorButtons() {
+        document.querySelectorAll('.chip').forEach((chip) => {
+            chip.classList.toggle('active', chip.dataset.sector === sectorKey);
+        });
     }
 
     function getCellData(r, c) {
@@ -121,11 +218,14 @@
     function startTimer() {
         stopTimer();
 
-        seconds = 0;
-        timerEl.textContent = pad3(0);
         timerId = setInterval(() => {
+            if (gameOver) {
+                return;
+            }
+
             seconds++;
             timerEl.textContent = pad3(seconds);
+            persist();
         }, 1000);
     }
 
@@ -134,14 +234,24 @@
     }
 
     function cellSize() {
-        const wrapWidth = Math.min(document.querySelector('.board-wrap').clientWidth - 16, 560);
-        const raw       = Math.floor(wrapWidth / cfg.cols);
+        const wrap       = document.querySelector('.board-wrap');
+        const style      = getComputedStyle(wrap);
+        const padX       = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const wrapWidth  = Math.min(wrap.clientWidth - padX, 560);
+        const boardStyle = getComputedStyle(boardEl);
+        const cellGap    = parseFloat(boardStyle.columnGap) || 0;
+        const gapWidth   = cellGap * (cfg.cols - 1);
+        const raw        = Math.floor((wrapWidth - gapWidth) / cfg.cols);
 
-        return Math.max(20, Math.min(40, raw));
+        return Math.max(1, Math.min(40, raw));
+    }
+
+    function updateBoardSize() {
+        boardEl.style.setProperty('--cell', `${cellSize()}px`);
     }
 
     function render() {
-        boardEl.style.setProperty('--cell', `${cellSize()}px`);
+        updateBoardSize();
         boardEl.style.gridTemplateColumns = `repeat(${cfg.cols}, var(--cell))`;
         boardEl.innerHTML = '';
 
@@ -155,6 +265,8 @@
                 boardEl.appendChild(cell);
             }
         }
+
+        requestAnimationFrame(updateBoardSize);
     }
 
     function cellEl(r, c) {
@@ -243,7 +355,7 @@
             if (d.mine) {
                 d.trigger = true;
 
-                return loseGame();
+                return deadGame();
             }
 
             drawCell(cr, cc);
@@ -258,7 +370,7 @@
             }
         }
 
-        checkWin();
+        checkClear();
     }
 
     function chord(r, c) {
@@ -321,30 +433,47 @@
         });
     }
 
-    function loseGame() {
-        gameOver = true;
-
-        stopTimer();
-        setStatus('dead');
-        drawAll();
-
-        bannerEl.className = 'banner lose';
-        bannerEl.textContent = "爆発 — 地雷を踏みました";
+    function refreshBanner(result, message) {
+        bannerEl.className = `banner ${result}`;
+        bannerEl.textContent = message;
     }
 
-    function checkWin() {
+    function deadBanner() {
+        refreshBanner('dead', "爆発 — 地雷を踏みました");
+    }
+
+    function clearBanner() {
+        refreshBanner('clear', "探知完了 — フィールドは安全です");
+    }
+
+    function hideBanner() {
+        refreshBanner('hidden', '');
+    }
+
+    function deadGame() {
+        gameOver = true;
+        result   = 'dead';
+
+        stopTimer();
+        setStatus(result);
+        drawAll();
+
+        deadBanner();
+    }
+
+    function checkClear() {
         const total = cfg.rows * cfg.cols;
         if(opened === (total - cfg.mines)){
             gameOver = true;
+            result   = 'clear';
 
             stopTimer();
-            setStatus('clear');
+            setStatus(result);
 
             flags = cfg.mines;
             updateMineCounter();
 
-            bannerEl.className = 'banner win';
-            bannerEl.textContent = "探知完了 — フィールドは安全です";
+            clearBanner();
         }
     }
 
@@ -355,6 +484,7 @@
         gameOver       = false;
         opened         = 0;
         flags          = 0;
+        result         = null;
 
         stopTimer();
         seconds = 0;
@@ -363,9 +493,55 @@
         updateMineCounter();
         setStatus(null);
 
-        bannerEl.className = 'banner hidden';
-
+        hideBanner();
         render();
+        persist();
+    }
+
+    function restoreOrStart() {
+        const saved = loadSaved();
+        if (!saved) {
+            newGame();
+
+            return;
+        }
+
+        sectorKey = saved.sector;
+        cfg       = SECTORS[sectorKey];
+
+        restoreCells(saved.cells);
+
+        firstClickDone = !!saved.firstClickDone;
+        gameOver       = !!saved.gameOver;
+        seconds        = (typeof saved.seconds === 'number') ? saved.seconds : 0;
+        opened         = (typeof saved.opened === 'number') ? saved.opened : 0;
+        flags          = (typeof saved.flags === 'number') ? saved.flags : 0;
+        result         = (saved.result === 'clear' || saved.result === 'dead') ? saved.result : null;
+
+        if (gameOver && result === null) {
+            result = (opened === cfg.rows * cfg.cols - cfg.mines) ? 'clear' : 'dead';
+        }
+
+        syncSectorButtons();
+        setStatus(result);
+        render();
+        drawAll();
+
+        timerEl.textContent = pad3(seconds);
+        updateMineCounter();
+
+        if (result === 'dead') {
+            deadBanner();
+        } else if (result === 'clear') {
+            clearBanner();
+        } else {
+            hideBanner();
+
+            if (firstClickDone) {
+                startTimer();
+            }
+        }
+
     }
 
     /*
@@ -390,9 +566,10 @@
      */
     document.querySelectorAll('.chip').forEach((chip) => {
         chip.addEventListener('click', () => {
-            document.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
-            chip.classList.add('active');
-            cfg = SECTORS[chip.dataset.sector];
+            sectorKey = chip.dataset.sector;
+            cfg       = SECTORS[sectorKey];
+
+            syncSectorButtons();
 
             newGame();
         });
@@ -428,6 +605,7 @@
                 press.fired = true;
 
                 toggleFlag(r, c);
+                persist();
                 cleanupPress();
 
                 return;
@@ -563,6 +741,8 @@
                         openCell(r, c);
                     }
                 }
+
+                persist();
             }
 
             mouseDown = null;
@@ -571,6 +751,7 @@
         }
 
         endPress(e);
+        persist();
     });
 
     boardEl.addEventListener('pointercancel', (e) => {
@@ -587,10 +768,17 @@
     });
 
     window.addEventListener('resize', () => {
-        boardEl.style.setProperty('--cell', `${cellSize()}px`);
+        updateBoardSize();
     });
 
     // サービスワーカーの登録は shared/register-sw.js が一括で行う (このファイルでは行わない)
 
-    newGame();
+    window.addEventListener('pagehide', persist);
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            persist();
+        }
+    });
+
+    restoreOrStart();
 })();
