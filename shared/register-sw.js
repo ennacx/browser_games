@@ -10,7 +10,7 @@
     }
 
     if (location.protocol !== 'http:' && location.protocol !== 'https:') {
-        // file:// で直接開いた場合はサービスワーカーを使わない(ゲーム自体は普通に遊べる)
+        // file:// 等で直接開いた場合はサービスワーカーを使わない(ゲーム自体は普通に遊べる)
         return;
     }
 
@@ -110,26 +110,28 @@
     }
 
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register(swUrl, { scope }).then((registration) => {
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (!newWorker) {
-                    return;
-                }
-
-                /*
-                 * すでに controller がいる状態で新しいワーカーが 'installed' になった
-                 * = 初回インストールではなく「更新」が来たということ。
-                 */
-                newWorker.addEventListener('statechange', () => {
-                    const isUpdate = newWorker.state === 'installed' && navigator.serviceWorker.controller;
-                    if (isUpdate && navigator.onLine) {
-                        showUpdateBanner();
+        navigator.serviceWorker.register(swUrl, { scope })
+            .then((registration) => {
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (!newWorker) {
+                        return;
                     }
+
+                    /*
+                     * すでに controller がいる状態で新しいワーカーが 'installed' になった
+                     * = 初回インストールではなく「更新」が来たということ。
+                     */
+                    newWorker.addEventListener('statechange', () => {
+                        const isUpdate = (newWorker.state === 'installed' && navigator.serviceWorker.controller);
+                        if (isUpdate && navigator.onLine) {
+                            showUpdateBanner();
+                        }
+                    });
                 });
+            })
+            .catch(() => {
+                // 登録に失敗してもゲーム自体は通常どおり遊べる (オフライン対応や更新通知が効かないだけ)
             });
-        }).catch(() => {
-            // 登録に失敗してもゲーム自体は通常どおり遊べる (オフライン対応や更新通知が効かないだけ)
-        });
     });
 })();
