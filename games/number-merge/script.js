@@ -911,7 +911,7 @@
         }
     });
 
-    // サービスワーカーの登録は shared/register-sw.js が一括で行う(このファイルでは行わない)
+    // サービスワーカーの登録は shared/register-sw.js が一括で行う (このファイルでは行わない)
 
     restoreOrStart();
 })();

@@ -1,11 +1,4 @@
-:root {
-    --bg: #f7f3ee;
-    --card: #fffdfb;
-    --ink: #6b6259;
-    --ink-soft: #a89e92;
-    --accent: #c98a7d;
-    --shadow: rgba(107, 98, 89, 0.12);
-}
+@use '../define';
 
 * {
     box-sizing: border-box;

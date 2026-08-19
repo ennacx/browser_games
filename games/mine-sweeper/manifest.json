@@ -1,7 +1,7 @@
 {
-  "name": "Simple browser games",
-  "short_name": "Simple browser games",
-  "description": "ちょっとした空き時間に遊べる、シンプルなブラウザゲーム集",
+  "name": "Mine Sweeper",
+  "short_name": "MineSweeper",
+  "description": "MINE FIELD DETECTOR",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>Mine Sweeper</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Mine Sweeper">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app">
+        <div class="top-row">
+            <div>
+                <a href="../../index.html" class="back-link" aria-label="ゲーム一覧に戻る">← 一覧</a>
+                <h1>Mine<span>Sweeper</span></h1>
+                <div class="subtitle">MINE FIELD DETECTOR</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="readout">
+                <span class="readout-label">残り地雷</span>
+                <span id="mineCount" class="value mines">010</span>
+            </div>
+
+            <button id="resetBtn" class="status-btn" aria-label="リセット">
+                <span id="statusDot" class="status-dot"></span>
+            </button>
+
+            <div class="readout">
+                <span class="readout-label">経過秒数</span>
+                <span id="timer" class="value timer">000</span>
+            </div>
+        </div>
+
+        <div id="sectorSelect" class="sector-select"></div>
+
+        <div class="board-wrap">
+            <div id="board" class="board"></div>
+        </div>
+
+        <div id="banner" class="banner hidden"></div>
+
+        <p class="hint">
+            PC: 左クリックで開く / 右クリックで旗 / 左右同時押し(数字マス)で周囲を一括で開く<br>
+            スマホ: タップで開く / 長押しで旗 / 開いた数字マスをタップで一括で開く
+        </p>
+    </div>
+
+    <!-- サイト共通のサービスワーカー登録(ルートのsw.jsを1つだけ登録する) -->
+    <script src="../../shared/register-sw.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
