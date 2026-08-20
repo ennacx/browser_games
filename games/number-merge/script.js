@@ -10,6 +10,52 @@
     // クリアスコア
     const CLEAR_SCORE = 2048; // 2の指数であること
 
+    /**
+     * 盤面セルの値
+     * ※ 0 は空セル、それ以外はタイルの数値
+     *
+     * @typedef {number} NumberMergeCell
+     */
+
+    /**
+     * Number Merge の盤面データ
+     *
+     * @typedef {NumberMergeCell[][]} NumberMergeGrid
+     */
+
+    /**
+     * ゲーム結果
+     *
+     * @typedef {'clear'|'over'} NumberMergeOverlayType
+     */
+
+    /**
+     * アンドゥ・リドゥで保持する1手分の状態
+     *
+     * @typedef {object} NumberMergeHistoryState
+     * @property {NumberMergeGrid} grid
+     * @property {number} score
+     * @property {boolean} won
+     * @property {boolean} over
+     * @property {NumberMergeOverlayType|null} overlayType
+     */
+
+    /**
+     * localStorage に保存するゲーム状態
+     *
+     * @typedef {object} NumberMergeSaveData
+     * @property {NumberMergeGrid} grid
+     * @property {number} score
+     * @property {number} best
+     * @property {number} elapsed
+     * @property {boolean} won
+     * @property {boolean} over
+     * @property {NumberMergeHistoryState|null} undoState
+     * @property {NumberMergeHistoryState|null} redoState
+     * @property {NumberMergeOverlayType|null} overlayType
+     * @property {boolean} clearCanContinue
+     */
+
     const boardEl     = document.getElementById('board');
     const scoreEl     = document.getElementById('score');
     const bestEl      = document.getElementById('best');
@@ -59,8 +105,10 @@
         boardEl.append(cell);
     }
 
-    // グリッド周り
-    let grid, cellSize;
+    /** @type {NumberMergeGrid} */
+    let grid;
+    // セルサイズ
+    let cellSize;
     // スコア周り
     let score, best;
     // 経過時間とタイマーのハンドラーID
@@ -82,7 +130,7 @@
     /**
      * localStorageまたはメモリ上からゲーム状態を読み込む
      *
-     * @return {object|null}
+     * @return {NumberMergeSaveData|null}
      */
     function loadSaved() {
         try {
@@ -178,8 +226,8 @@
     /**
      * グリッドのディープコピー (clone)
      *
-     * @param {number[][]} src
-     * @return {number[][]}
+     * @param {NumberMergeGrid} src
+     * @return {NumberMergeGrid}
      */
     function cloneGrid(src) {
         return src.map((row) => row.slice());
@@ -188,7 +236,7 @@
     /**
      * アンドゥ・リドゥで管理するオブジェクトの生成
      *
-     * @return {{grid: number[][], score: number, won: boolean, over: boolean, overlayType: string|null}}
+     * @return {NumberMergeHistoryState}
      */
     function createHistoryState() {
         return {
@@ -253,7 +301,7 @@
     /**
      * アンドゥ・リドゥボタン押下時の状態復元
      *
-     * @param {{grid: number[][], score: number, won: boolean, over: boolean, overlayType: string|null}} state
+     * @param {NumberMergeHistoryState} state
      */
     function restoreHistoryState(state) {
         grid  = cloneGrid(state.grid);
