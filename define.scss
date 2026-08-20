@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&family=Zen+Maru+Gothic&display=swap');
+
+:root {
+    --bg: #f7f3ee;
+    --card: #fffdfb;
+    --grid-bg: #ece4da;
+    --cell-empty: #f4eee5;
+    --ink: #6b6259;
+    --ink-heading:#5b5248;
+    --ink-soft: #a89e92;
+    --accent: #c98a7d;
+    --shadow: rgba(107, 98, 89, 0.12);
+
+    /* pale tone scale, deepens gently as numbers grow */
+    --t2:    #f1e9df; --t2-ink:    #8a8074;
+    --t4:    #eadfce; --t4-ink:    #8a7a5c;
+    --t8:    #e9d6bd; --t8-ink:    #8a6a3d;
+    --t16:   #e3c9c2; --t16-ink:   #8a4f45;
+    --t32:   #dcb8c4; --t32-ink:   #8a3d55;
+    --t64:   #cfa9c6; --t64-ink:   #6d3f68;
+    --t128:  #b7a3cf; --t128-ink:  #443a72;
+    --t256:  #9fabce; --t256-ink:  #2f3f6e;
+    --t512:  #8fb3c2; --t512-ink:  #20495a;
+    --t1024: #87bcb2; --t1024-ink: #1c4f47;
+    --t2048: #8fc39a; --t2048-ink: #1b4a2c;
+    --thi:   #6f6259; --thi-ink:   #fdf9f4;
+}

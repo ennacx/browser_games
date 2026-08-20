@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&family=Zen+Maru+Gothic&display=swap");
 :root {
   --bg: #f7f3ee;
   --card: #fffdfb;
   --grid-bg: #ece4da;
   --cell-empty: #f4eee5;
   --ink: #6b6259;
+  --ink-heading:#5b5248;
   --ink-soft: #a89e92;
   --accent: #c98a7d;
   --shadow: rgba(107, 98, 89, 0.12);
@@ -32,6 +34,23 @@
   --t2048-ink: #1b4a2c;
   --thi: #6f6259;
   --thi-ink: #fdf9f4;
+}
+
+.back-link {
+  margin-bottom: 6px;
+  display: inline-block;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.back-link:hover {
+  color: var(--accent);
+}
+.back-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 * {
@@ -89,23 +108,6 @@ h1 span {
   color: var(--ink-soft);
   font-size: 12px;
   letter-spacing: 0.04em;
-}
-
-.back-link {
-  margin-bottom: 6px;
-  display: inline-block;
-  color: var(--ink-soft);
-  font-size: 12px;
-  text-decoration: none;
-  letter-spacing: 0.02em;
-}
-.back-link:hover {
-  color: var(--accent);
-}
-.back-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .scores {
