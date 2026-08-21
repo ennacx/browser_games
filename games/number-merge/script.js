@@ -146,6 +146,8 @@
 
             return data;
         } catch (e) {
+            console.error('localStorage restore error.', e);
+
             return memoryFallback;
         }
     }
@@ -162,6 +164,8 @@
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
+            console.error('localStorage persist error.', e);
+
             // 保存できない環境ではメモリ保持のみ (このタブを閉じるまで有効)
         }
     }

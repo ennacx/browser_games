@@ -194,8 +194,7 @@ h1 span {
   gap: 8px;
   margin-bottom: 14px;
 }
-
-.chip {
+.sector-select .sector-select-button {
   padding: 9px 4px;
   flex: 1;
   font-family: "Quicksand", sans-serif;
@@ -207,7 +206,7 @@ h1 span {
   border-radius: 10px;
   cursor: pointer;
 }
-.chip.active {
+.sector-select .sector-select-button.active {
   background: var(--accent);
   color: var(--card);
 }

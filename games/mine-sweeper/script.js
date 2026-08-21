@@ -79,8 +79,10 @@
     let elapsed        = null;
     let seconds        = 0;
 
-    let result          = null;
-    let memoryFallback  = null;
+    let result = null;
+
+    /** @type {MineSweeperSaveData|null} */
+    let memoryFallback = null;
 
     const boardEl     = document.getElementById('board');
     const mineCountEl = document.getElementById('mineCount');
@@ -115,6 +117,7 @@
         const res = [];
         for (let dr = -1; dr <= 1; dr++) {
             for (let dc = -1; dc <= 1; dc++) {
+                // `0, 0`は指定元アドレスを指すため無視
                 if (dr === 0 && dc === 0) {
                     continue;
                 }
@@ -122,6 +125,7 @@
                 const nr = r + dr;
                 const nc = c + dc;
 
+                // 盤面外のアドレスは無視
                 if (nr >= 0 && nr < selectedSector.rows && nc >= 0 && nc < selectedSector.cols) {
                     res.push([nr, nc]);
                 }
@@ -129,6 +133,26 @@
         }
 
         return res;
+    }
+
+    /**
+     * 全セルを走査する。
+     * 引数のコールバックが true または void を返した場合は次のセルへ進み、false を返した場合は走査を中断する。
+     *
+     * @param {(row: number, col: number) => boolean|void} callback
+     * @return {boolean} 最後まで走査した場合は true、中断した場合は false
+     */
+    function processAllCells(callback) {
+        for (let row = 0; row < selectedSector.rows; row++) {
+            for (let col = 0; col < selectedSector.cols; col++) {
+                const result = callback(row, col);
+                if (result === false) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -166,6 +190,8 @@
 
             return data;
         } catch (e) {
+            console.error('localStorage restore error.', e);
+
             return memoryFallback;
         }
     }
@@ -199,6 +225,7 @@
      * ※失敗時はメモリ上に保持。
      */
     function persist() {
+        /** @type {MineSweeperSaveData} */
         const data = {
             sector: sectorKey,
             cells: createCellStates(),
@@ -215,6 +242,8 @@
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
+            console.error('localStorage persist error.', e);
+
             // 保存できない環境ではメモリ保持のみ (このタブを閉じるまで有効)
         }
     }
@@ -257,7 +286,7 @@
         Object.keys(SECTORS).forEach((k, i) => {
             const selBtn = document.createElement('button');
 
-            selBtn.classList.add('chip');
+            selBtn.classList.add('sector-select-button');
             if (i === 0) {
                 selBtn.classList.add('active');
             }
@@ -265,19 +294,20 @@
             selBtn.dataset.sector = k;
             selBtn.textContent = `${SECTORS[k].label} ${SECTORS[k].cols}×${SECTORS[k].rows}`;
 
-            sectorSelEl.appendChild(selBtn);
-        });
+            // セクターセレクトボタンのクリックイベント登録
+            selBtn.addEventListener('click', () => {
+                // セクター切り替え
+                sectorKey      = k;
+                selectedSector = SECTORS[k];
 
-        // セクターセレクトボタンのクリックイベント登録
-        document.querySelectorAll('.chip').forEach((chip) => {
-            chip.addEventListener('click', () => {
-                sectorKey      = chip.dataset.sector;
-                selectedSector = SECTORS[sectorKey];
-
+                // セクターボタンに反映
                 syncSectorButtons();
 
+                // ニューゲーム開始
                 newGame();
             });
+
+            sectorSelEl.appendChild(selBtn);
         });
     }
 
@@ -285,29 +315,9 @@
      * セクターセレクトボタンの状態を同期する。
      */
     function syncSectorButtons() {
-        document.querySelectorAll('.chip').forEach((chip) => {
-            chip.classList.toggle('active', chip.dataset.sector === sectorKey);
+        document.querySelectorAll('.sector-select-button').forEach((btn) => {
+            btn.classList.toggle('active', (btn.dataset.sector === sectorKey));
         });
-    }
-
-    /**
-     * 全セルを走査する。
-     * 引数のコールバックが true または void を返した場合は次のセルへ進み、false を返した場合は走査を中断する。
-     *
-     * @param {(row: number, col: number) => boolean|void} callback
-     * @return {boolean} 最後まで走査した場合は true、中断した場合は false
-     */
-    function processAllCells(callback) {
-        for (let row = 0; row < selectedSector.rows; row++) {
-            for (let col = 0; col < selectedSector.cols; col++) {
-                const result = callback(row, col);
-                if (result === false) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -355,7 +365,7 @@
         const safeSet = new Set(neighbors(safeR, safeC).map(([r, c]) => `${r}_${c}`));
         safeSet.add(`${safeR}_${safeC}`);
 
-        // 設定値に達するまでランダムに地雷配置
+        // 選択セクターの地雷上限値に達するまでランダムに地雷配置
         let placed = 0;
         while (placed < selectedSector.mines) {
             const r   = Math.floor(Math.random() * selectedSector.rows);
@@ -473,11 +483,11 @@
     }
 
     /**
-     * 指定アドレスセルのElementを取得する。
+     * 指定アドレスセルのHTMLElementを取得する。
      *
      * @param {number} r
      * @param {number} c
-     * @return {Element}
+     * @return {HTMLElement}
      */
     function getCellElement(r, c) {
         const idx = r * selectedSector.cols + c;
@@ -525,7 +535,7 @@
             // 周囲の地雷数を表示
             else if (data.count > 0) {
                 el.classList.add(`n${data.count}`);
-                el.textContent = data.count;
+                el.textContent = String(data.count);
             }
             // それ以外は何もしない
             else {
@@ -590,9 +600,11 @@
             updateStatusDotCssClass(null);
         }
 
-        // 開封箇所を起点に周囲に地雷がないセルを連続して開封していく
+        // 開封対象を積んでいくスタック配列
         const stack = [[r, c]];
-        while (stack.length) {
+
+        // 開封箇所を起点に周囲に地雷がないセルを連続して開封していく
+        while (stack.length > 0) {
             const [cr, cc] = stack.pop();
             const d = getCellData(cr, cc);
 
@@ -615,10 +627,13 @@
             // 開封したセルを描画
             drawCell(cr, cc);
 
-            // 開封したセルの周囲に地雷がなければ周囲のセルを再帰的に開封
+            // 開封したセルの周囲に地雷が無い場合
             if (d.count === 0) {
+                // 周囲のセルを走査
                 for (const [nr, nc] of neighbors(cr, cc)) {
                     const nData = getCellData(nr, nc);
+
+                    // 周囲のセルが未開封かつフラッグが立てられていなければスタックに積み再帰的に開封
                     if (!nData.open && !nData.flag) {
                         stack.push([nr, nc]);
                     }
@@ -648,10 +663,10 @@
         // 周囲のセル情報を取得
         const nbrs = neighbors(r, c);
         // 周囲のフラッグ立てセル数を取得
-        const flagged = nbrs.filter(([nr, nc]) => getCellData(nr, nc).flag).length;
+        const flaggedCellCount = nbrs.filter(([nr, nc]) => getCellData(nr, nc).flag).length;
 
         // 周囲のフラッグ立てセル数が周囲の数字セルの値と一致しない場合は何もしない
-        if (flagged !== data.count) {
+        if (flaggedCellCount !== data.count) {
             return;
         }
 
@@ -666,7 +681,7 @@
             // セルを開封
             openCell(nr, nc);
 
-            // openCell()でクリア判定が入るので判定された場合は中断
+            // openCell() でクリア判定が入るので判定された場合は中断
             if (gameOver) {
                 return;
             }
@@ -703,7 +718,7 @@
         drawCell(r, c);
 
         // スマホのバイブレーション
-        if (navigator.vibrate) {
+        if (navigator.vibrate && typeof navigator.vibrate === 'function') {
             navigator.vibrate(15);
         }
     }
@@ -933,11 +948,11 @@
                 return;
             }
 
-            const elapsed = now - start;
+            const diff = now - start;
 
-            ring.style.setProperty('--p', String(Math.min(100, (elapsed / HOLD_MS) * 100)));
+            ring.style.setProperty('--p', String(Math.min(100, (diff / HOLD_MS) * 100)));
 
-            if (elapsed >= HOLD_MS) {
+            if (diff >= HOLD_MS) {
                 press.fired = true;
 
                 toggleFlag(r, c);
