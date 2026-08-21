@@ -9,6 +9,9 @@
 
     const STORAGE_KEY    = 'mineSweeper.save.v1';
 
+    const PORTRAIT  = 'portrait';
+    const LANDSCAPE = 'landscape';
+
     /**
      * Mine Sweeper のゲーム結果
      * @typedef {'dead'|'clear'} MineSweeperResult
@@ -48,6 +51,7 @@
      *
      * @typedef {object} MineSweeperSaveData
      * @property {string} sector
+     * @property {'portrait'|'landscape'} orientation
      * @property {SavedMineSweeperCell[]} cells
      * @property {boolean} firstClickDone
      * @property {boolean} gameOver
@@ -67,7 +71,8 @@
      */
 
     let sectorKey      = 'small';
-    let selectedSector = SECTORS[sectorKey];
+    let boardOrientation = getPreferredBoardOrientation();
+    let selectedSector = createSelectedSector(sectorKey, boardOrientation);
 
     /** @type {MineSweeperGrid} */
     let grid = [];
@@ -91,6 +96,68 @@
     const sectorSelEl = document.getElementById('sectorSelect');
     const bannerEl    = document.getElementById('banner');
     const resetBtn    = document.getElementById('resetBtn');
+
+    /**
+     * 現在の画面比率から盤面の向きを取得する。
+     *
+     * @return {'portrait'|'landscape'}
+     */
+    function getPreferredBoardOrientation() {
+        return (window.innerWidth > window.innerHeight) ? LANDSCAPE : PORTRAIT;
+    }
+
+    /**
+     * セクター定義を画面比率に合わせた行列数へ変換する。
+     *
+     * @param {string} key Sector key
+     * @param {'portrait'|'landscape'} orientation
+     * @return {{rows: number, cols: number, mines: number, label: string}}
+     */
+    function createSelectedSector(key, orientation) {
+        const sector = SECTORS[key];
+        const shouldSwap = (
+            sector.rows !== sector.cols
+            && (
+                (orientation === LANDSCAPE && sector.rows > sector.cols)
+                || (orientation === PORTRAIT && sector.rows < sector.cols)
+            )
+        );
+
+        return {
+            rows: (shouldSwap) ? sector.cols : sector.rows,
+            cols: (shouldSwap) ? sector.rows : sector.cols,
+            mines: sector.mines,
+            label: sector.label
+        };
+    }
+
+    /**
+     * 選択中セクターの行列数を現在の画面比率に合わせる。
+     */
+    function updateSelectedSector() {
+        boardOrientation = getPreferredBoardOrientation();
+        selectedSector   = createSelectedSector(sectorKey, boardOrientation);
+    }
+
+    /**
+     * 保存時と復元時で盤面の向きが異なる場合、セルアドレスを転置する。
+     *
+     * @param {SavedMineSweeperCell} cell
+     * @param {'portrait'|'landscape'} savedOrientation
+     * @return {SavedMineSweeperCell}
+     */
+    function orientSavedCell(cell, savedOrientation) {
+        const sector = SECTORS[sectorKey];
+        if (savedOrientation === boardOrientation || sector.rows === sector.cols) {
+            return cell;
+        }
+
+        return {
+            ...cell,
+            r: cell.c,
+            c: cell.r
+        };
+    }
 
     /**
      * 3桁で0埋めする。 (負数はマイナス記号付き2桁)
@@ -228,6 +295,7 @@
         /** @type {MineSweeperSaveData} */
         const data = {
             sector: sectorKey,
+            orientation: boardOrientation,
             cells: createCellStates(),
             firstClickDone,
             gameOver,
@@ -252,11 +320,13 @@
      * localStorageから復元した隠せるデータをグリッドに復元する。
      *
      * @param {SavedMineSweeperCell[]} cells
+     * @param {'portrait'|'landscape'} savedOrientation
      */
-    function restoreCells(cells) {
+    function restoreCells(cells, savedOrientation) {
         buildGrid();
 
-        for (const cell of cells) {
+        for (const savedCell of cells) {
+            const cell = orientSavedCell(savedCell, savedOrientation);
             if (
                 typeof cell.r !== 'number'
                 || typeof cell.c !== 'number'
@@ -292,13 +362,14 @@
             }
 
             selBtn.dataset.sector = k;
-            selBtn.textContent = `${SECTORS[k].label} ${SECTORS[k].cols}×${SECTORS[k].rows}`;
+
+            updateSectorButtonLabel(selBtn);
 
             // セクターセレクトボタンのクリックイベント登録
             selBtn.addEventListener('click', () => {
                 // セクター切り替え
-                sectorKey      = k;
-                selectedSector = SECTORS[k];
+                sectorKey = k;
+                updateSelectedSector();
 
                 // セクターボタンに反映
                 syncSectorButtons();
@@ -312,10 +383,23 @@
     }
 
     /**
+     * セクターボタンの表示サイズを現在の画面比率に合わせる。
+     *
+     * @param {HTMLElement} btn
+     */
+    function updateSectorButtonLabel(btn) {
+        const key    = btn.dataset.sector;
+        const sector = createSelectedSector(key, boardOrientation);
+
+        btn.textContent = `${sector.label} ${sector.cols}×${sector.rows}`;
+    }
+
+    /**
      * セクターセレクトボタンの状態を同期する。
      */
     function syncSectorButtons() {
         document.querySelectorAll('.sector-select-button').forEach((btn) => {
+            updateSectorButtonLabel(btn);
             btn.classList.toggle('active', (btn.dataset.sector === sectorKey));
         });
     }
@@ -824,6 +908,10 @@
      * ニューゲーム開始。
      */
     function newGame() {
+        // 盤面の向きを現在の画面比率に合わせる
+        updateSelectedSector();
+        syncSectorButtons();
+
         // グリッド初期化
         buildGrid();
 
@@ -868,11 +956,14 @@
         }
 
         // 保存されているセクター
-        sectorKey      = saved.sector;
-        selectedSector = SECTORS[sectorKey];
+        sectorKey = saved.sector;
+
+        updateSelectedSector();
+
+        const savedOrientation = (saved.orientation === LANDSCAPE) ? LANDSCAPE : PORTRAIT;
 
         // セルをグリッドに復元
-        restoreCells(saved.cells);
+        restoreCells(saved.cells, savedOrientation);
 
         // 各変数を復元
         firstClickDone = !!saved.firstClickDone;
@@ -1180,6 +1271,23 @@
      * ページリサイズ
      */
     window.addEventListener('resize', () => {
+        // ゲームをまだ開始していない場合はリサイズ後の画面比率に応じて盤面を切り替える
+        const nextOrientation = getPreferredBoardOrientation();
+        if (!firstClickDone && nextOrientation !== boardOrientation) {
+            updateSelectedSector();
+
+            buildGrid();
+            syncSectorButtons();
+
+            render();
+
+            updateMineCounter();
+
+            persist();
+
+            return;
+        }
+
         // ボードサイズ更新
         updateBoardSize();
     });
