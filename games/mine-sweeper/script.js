@@ -24,11 +24,11 @@
      * 盤面上の1セルの状態
      *
      * @typedef {object} MineSweeperCell
-     * @property {boolean} mine 地雷セルかどうか
+     * @property {boolean} mine 地雷セルかのフラグ
      * @property {number} count 周囲8マスの地雷数
-     * @property {boolean} open 開封済みかどうか
-     * @property {boolean} flag フラッグが立っているかどうか
-     * @property {boolean=} trigger 踏んだ地雷セルかどうか
+     * @property {boolean} open 開封済みかどうかのフラグ
+     * @property {boolean} flag フラッグが立っているかのフラグ
+     * @property {boolean=} trigger 踏んだ地雷セルかのフラグ
      */
 
     /**
@@ -67,7 +67,7 @@
      */
 
     let sectorKey      = 'small';
-    let cfg            = SECTORS[sectorKey];
+    let selectedSector = SECTORS[sectorKey];
 
     /** @type {MineSweeperGrid} */
     let grid = [];
@@ -91,7 +91,7 @@
     const resetBtn    = document.getElementById('resetBtn');
 
     /**
-     * 3桁で0埋め (負数はマイナス記号付き2桁)
+     * 3桁で0埋めする。 (負数はマイナス記号付き2桁)
      *
      * @param {number} n
      * @return {string}
@@ -105,7 +105,7 @@
     }
 
     /**
-     * 指定アドレスセルの周囲セルすべてのアドレスを配列で取得
+     * 指定アドレスセルの周囲セルすべてのアドレスを配列で取得する。
      *
      * @param {number} r
      * @param {number} c
@@ -122,7 +122,7 @@
                 const nr = r + dr;
                 const nc = c + dc;
 
-                if (nr >= 0 && nr < cfg.rows && nc >= 0 && nc < cfg.cols) {
+                if (nr >= 0 && nr < selectedSector.rows && nc >= 0 && nc < selectedSector.cols) {
                     res.push([nr, nc]);
                 }
             }
@@ -132,13 +132,13 @@
     }
 
     /**
-     * 初期セルデータをセットしたグリッドを構築する
+     * 初期セルデータをセットしたグリッドを構築する。
      */
     function buildGrid() {
         grid = [];
-        for (let r = 0; r < cfg.rows; r++) {
+        for (let r = 0; r < selectedSector.rows; r++) {
             const row = [];
-            for (let c = 0; c < cfg.cols; c++) {
+            for (let c = 0; c < selectedSector.cols; c++) {
                 row.push({ mine: false, count: 0, open: false, flag: false });
             }
 
@@ -147,8 +147,8 @@
     }
 
     /**
-     * localStorageからセーブデータを読み込む
-     * ※失敗時はメモリ上から取得
+     * localStorageからセーブデータを読み込む。
+     * ※失敗時はメモリ上から取得。
      *
      * @return {MineSweeperSaveData|null}
      */
@@ -171,33 +171,32 @@
     }
 
     /**
-     * 現在のグリッドから各セルの状態をクローンする
+     * 現在のグリッドから各セルの状態をクローンする。
+     *
      * @return {SavedMineSweeperCell[]}
      */
     function createCellStates() {
         const cells = [];
 
-        for (let r = 0; r < cfg.rows; r++) {
-            for (let c = 0; c < cfg.cols; c++) {
-                const data = getCellData(r, c);
-                cells.push({
-                    r,
-                    c,
-                    mine: !!data.mine,
-                    count: data.count,
-                    open: !!data.open,
-                    flag: !!data.flag,
-                    trigger: !!data.trigger
-                });
-            }
-        }
+        processAllCells((r, c) => {
+            const data = getCellData(r, c);
+            cells.push({
+                r,
+                c,
+                mine: !!data.mine,
+                count: data.count,
+                open: !!data.open,
+                flag: !!data.flag,
+                trigger: !!data.trigger
+            });
+        });
 
         return cells;
     }
 
     /**
-     * localStorageにセーブデータを保存する
-     * ※失敗時はメモリ上に保持する
+     * localStorageにセーブデータを保存する。
+     * ※失敗時はメモリ上に保持。
      */
     function persist() {
         const data = {
@@ -221,7 +220,7 @@
     }
 
     /**
-     * localStorageから復元した隠せるデータをグリッドに復元する
+     * localStorageから復元した隠せるデータをグリッドに復元する。
      *
      * @param {SavedMineSweeperCell[]} cells
      */
@@ -233,9 +232,9 @@
                 typeof cell.r !== 'number'
                 || typeof cell.c !== 'number'
                 || cell.r < 0
-                || cell.r >= cfg.rows
+                || cell.r >= selectedSector.rows
                 || cell.c < 0
-                || cell.c >= cfg.cols
+                || cell.c >= selectedSector.cols
             ) {
                 continue;
             }
@@ -251,7 +250,7 @@
     }
 
     /**
-     * セクターセレクトボタンの配置
+     * セクターセレクトボタンを配置する。
      */
     function initSectorButtons() {
         // 定数から動的にボタンを配置
@@ -272,8 +271,8 @@
         // セクターセレクトボタンのクリックイベント登録
         document.querySelectorAll('.chip').forEach((chip) => {
             chip.addEventListener('click', () => {
-                sectorKey = chip.dataset.sector;
-                cfg       = SECTORS[sectorKey];
+                sectorKey      = chip.dataset.sector;
+                selectedSector = SECTORS[sectorKey];
 
                 syncSectorButtons();
 
@@ -283,7 +282,7 @@
     }
 
     /**
-     * セクターセレクトボタンの状態同期
+     * セクターセレクトボタンの状態を同期する。
      */
     function syncSectorButtons() {
         document.querySelectorAll('.chip').forEach((chip) => {
@@ -292,7 +291,27 @@
     }
 
     /**
-     * グリッドから指定アドレスのセルデータを取得
+     * 全セルを走査する。
+     * 引数のコールバックが true または void を返した場合は次のセルへ進み、false を返した場合は走査を中断する。
+     *
+     * @param {(row: number, col: number) => boolean|void} callback
+     * @return {boolean} 最後まで走査した場合は true、中断した場合は false
+     */
+    function processAllCells(callback) {
+        for (let row = 0; row < selectedSector.rows; row++) {
+            for (let col = 0; col < selectedSector.cols; col++) {
+                const result = callback(row, col);
+                if (result === false) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * グリッドから指定アドレスのセルデータを取得する。
      *
      * @param {number} r
      * @param {number} c
@@ -303,7 +322,7 @@
     }
 
     /**
-     * グリッド内の指定アドレスのセルデータをセット
+     * グリッド内の指定アドレスのセルデータをセットする。
      *
      * @param {number} r
      * @param {number} c
@@ -314,7 +333,7 @@
     }
 
     /**
-     * グリッド内の指定アドレスの指定セル要素を更新
+     * グリッド内の指定アドレスの指定セル要素を更新する。
      *
      * @param {number} r
      * @param {number} c
@@ -326,21 +345,24 @@
     }
 
     /**
-     * ランダムに地雷を配置し、地雷ではないセルすべての周囲の地雷数を算出
+     * ランダムに地雷を配置し、地雷ではないセルすべての周囲の地雷数を算出する。
      *
      * @param safeR
      * @param safeC
      */
     function placeMines(safeR, safeC) {
+        // クリックした箇所とその周囲は必ず安全地帯にする
         const safeSet = new Set(neighbors(safeR, safeC).map(([r, c]) => `${r}_${c}`));
         safeSet.add(`${safeR}_${safeC}`);
 
+        // 設定値に達するまでランダムに地雷配置
         let placed = 0;
-        while (placed < cfg.mines) {
-            const r = Math.floor(Math.random() * cfg.rows);
-            const c = Math.floor(Math.random() * cfg.cols);
+        while (placed < selectedSector.mines) {
+            const r   = Math.floor(Math.random() * selectedSector.rows);
+            const c   = Math.floor(Math.random() * selectedSector.cols);
             const key = `${r}_${c}`;
 
+            // 既に設置済みの場所だったり安全地帯に配置しようとした場合はやり直し
             if (getCellData(r, c).mine || safeSet.has(key)) {
                 continue;
             }
@@ -349,20 +371,20 @@
             placed++;
         }
 
-        for (let r = 0; r < cfg.rows; r++) {
-            for (let c = 0; c < cfg.cols; c++) {
-                if (getCellData(r, c).mine) {
-                    continue;
-                }
-
-                const cnt = neighbors(r, c).filter(([nr, nc]) => getCellData(nr, nc).mine).length;
-                updateCellElement(r, c, 'count', cnt);
+        // 全セルを走査し周囲の地雷数を算出、数字セルを作成
+        processAllCells((r, c) => {
+            const data = getCellData(r, c);
+            if (data.mine) {
+                return true;
             }
-        }
+
+            const cnt = neighbors(r, c).filter(([nr, nc]) => getCellData(nr, nc).mine).length;
+            updateCellElement(r, c, 'count', cnt);
+        });
     }
 
     /**
-     * ステータスドットのCSSクラスを更新
+     * ステータスドットのCSSクラスを更新する。
      *
      * @param {MineSweeperResult|null} state
      */
@@ -371,7 +393,7 @@
     }
 
     /**
-     * 経過時間タイマーを停止
+     * 経過時間タイマーを停止する。
      */
     function stopTimer() {
         if (elapsed) {
@@ -381,7 +403,7 @@
     }
 
     /**
-     * 経過時間タイマーを開始
+     * 経過時間タイマーを開始する。
      */
     function startTimer() {
         stopTimer();
@@ -398,14 +420,14 @@
     }
 
     /**
-     * 残りの地雷数表示を更新
+     * 残りの地雷数表示を更新する。
      */
     function updateMineCounter() {
-        mineCountEl.textContent = pad3(cfg.mines - flags);
+        mineCountEl.textContent = pad3(selectedSector.mines - flags);
     }
 
     /**
-     * 1セルあたりのサイズを動的に算出 (最大40px)
+     * 1セルあたりのサイズを動的に算出する。 (最大40px)
      *
      * @return {number}
      */
@@ -416,56 +438,55 @@
         const wrapWidth  = Math.min(wrap.clientWidth - padX, 560);
         const boardStyle = getComputedStyle(boardEl);
         const cellGap    = parseFloat(boardStyle.columnGap) || 0;
-        const gapWidth   = cellGap * (cfg.cols - 1);
-        const raw        = Math.floor((wrapWidth - gapWidth) / cfg.cols);
+        const gapWidth   = cellGap * (selectedSector.cols - 1);
+        const raw        = Math.floor((wrapWidth - gapWidth) / selectedSector.cols);
 
         return Math.max(1, Math.min(40, raw));
     }
 
     /**
-     * ボードサイズを更新
+     * ボードサイズを更新する。
      */
     function updateBoardSize() {
         boardEl.style.setProperty('--cell', `${cellSize()}px`);
     }
 
     /**
-     * 画面への描画
+     * 画面へ描画する。
      */
     function render() {
         updateBoardSize();
-        boardEl.style.gridTemplateColumns = `repeat(${cfg.cols}, var(--cell))`;
+        boardEl.style.gridTemplateColumns = `repeat(${selectedSector.cols}, var(--cell))`;
         boardEl.innerHTML = '';
 
-        for (let r = 0; r < cfg.rows; r++) {
-            for (let c = 0; c < cfg.cols; c++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell covered';
-                cell.dataset.r = String(r);
-                cell.dataset.c = String(c);
+        // セルの描画
+        processAllCells((r, c) => {
+            const cell = document.createElement('div');
+            cell.className = 'cell covered';
+            cell.dataset.r = String(r);
+            cell.dataset.c = String(c);
 
-                boardEl.appendChild(cell);
-            }
-        }
+            boardEl.appendChild(cell);
+        });
 
         requestAnimationFrame(updateBoardSize);
     }
 
     /**
-     * 指定アドレスセルのElementを取得
+     * 指定アドレスセルのElementを取得する。
      *
      * @param {number} r
      * @param {number} c
      * @return {Element}
      */
     function getCellElement(r, c) {
-        const idx = r * cfg.cols + c;
+        const idx = r * selectedSector.cols + c;
 
         return boardEl.children[idx];
     }
 
     /**
-     * フラッグのSVGタグ
+     * フラッグのSVGタグを返却する。
      *
      * @return {string}
      */
@@ -474,7 +495,7 @@
     }
 
     /**
-     * 地雷のSVGタグ
+     * 地雷のSVGタグを返却する。
      *
      * @return {string}
      */
@@ -483,7 +504,7 @@
     }
 
     /**
-     * 指定アドレスセルのElementを描画
+     * 指定アドレスセルのElementを描画する。
      *
      * @param {number} r
      * @param {number} c
@@ -532,18 +553,14 @@
     }
 
     /**
-     * 全セルを描画する
+     * 全セルを描画する。
      */
     function drawAllCells() {
-        for (let r = 0; r < cfg.rows; r++) {
-            for (let c = 0; c < cfg.cols; c++) {
-                drawCell(r, c);
-            }
-        }
+        processAllCells(drawCell);
     }
 
     /**
-     * 指定アドレスのセルを開ける
+     * 指定アドレスのセルを開ける。
      *
      * @param {number} r
      * @param {number} c
@@ -614,8 +631,8 @@
     }
 
     /**
-     * 指定アドレスセルの周囲の未確定マスを一括で開く
-     * ※周囲に地雷が1つ以上の数字セルの操作
+     * 指定アドレスセルの周囲の隠されたセルを一括で開く。
+     * ※周囲に地雷が1つ以上の数字セルが対象。
      *
      * @param {number} r
      * @param {number} c
@@ -623,13 +640,13 @@
     function chord(r, c) {
         const data = getCellData(r, c);
 
-        // 未開封または周囲に地雷がない場合は何もしない
+        // クリック箇所が未開封または周囲に地雷がない場合は何もしない
         if (!data.open || data.count === 0) {
             return;
         }
 
         // 周囲のセル情報を取得
-        const nbrs    = neighbors(r, c);
+        const nbrs = neighbors(r, c);
         // 周囲のフラッグ立てセル数を取得
         const flagged = nbrs.filter(([nr, nc]) => getCellData(nr, nc).flag).length;
 
@@ -657,7 +674,7 @@
     }
 
     /**
-     * 指定アドレスセルのフラッグの上げ下げ
+     * 指定アドレスセルのフラッグを上げ下げ (トグル) する。
      *
      * @param {number} r
      * @param {number} c
@@ -692,7 +709,7 @@
     }
 
     /**
-     * 指定アドレスセルの周囲の未確定マスを一括で開く際にどこが開くかをCSSクラス付与で表示制御する
+     * 指定アドレスセルの周囲の未確定マスを一括で開く際にどこが開くかをCSSクラス付与で表示制御する。
      *
      * @param {number} r
      * @param {number} c
@@ -716,8 +733,8 @@
     }
 
     /**
-     * バナー制御
-     * ゲームオーバー時に表示されプレイ時は非表示
+     * バナー制御。
+     * ゲームオーバー時に表示され、プレイ時は非表示。
      *
      * @param {string} result
      * @param {string} message
@@ -728,28 +745,28 @@
     }
 
     /**
-     * 地雷を踏んでしまったときのバナー表示
+     * 地雷を踏んでしまったときのバナーを表示する。
      */
     function deadBanner() {
         refreshBanner('dead', "爆発 — 地雷を踏みました");
     }
 
     /**
-     * ゲームクリア時のバナー表示
+     * ゲームクリア時のバナーを表示する。
      */
     function clearBanner() {
         refreshBanner('clear', "探知完了 — フィールドは安全です");
     }
 
     /**
-     * バナーを非表示
+     * バナーを非表示にする。
      */
     function hideBanner() {
         refreshBanner('hidden', '');
     }
 
     /**
-     * 地雷を踏んでしまったときの処理
+     * 地雷を踏んでしまったときの処理。
      */
     function deadGame() {
         gameOver = true;
@@ -763,13 +780,13 @@
     }
 
     /**
-     * ゲームクリア判定とゲームクリア処理
+     * ゲームクリア判定とゲームクリア処理。
      */
     function checkClear() {
-        const total = cfg.rows * cfg.cols;
+        const total = selectedSector.rows * selectedSector.cols;
 
         // 開封済みのセル数が `全セル - 地雷数` と等しい場合にゲームクリア
-        if(opened === (total - cfg.mines)){
+        if(opened === (total - selectedSector.mines)){
             gameOver = true;
             result   = 'clear';
 
@@ -777,7 +794,7 @@
             stopTimer();
 
             // 立てたフラッグ数を地雷数に合わせる
-            flags = cfg.mines;
+            flags = selectedSector.mines;
             // 表示されている残地雷数は `flags` 基準で算出しているので表示も 0 になる
             updateMineCounter();
 
@@ -789,7 +806,7 @@
     }
 
     /**
-     * ニューゲーム開始
+     * ニューゲーム開始。
      */
     function newGame() {
         // グリッド初期化
@@ -824,7 +841,7 @@
     }
 
     /**
-     * 復元データから再開かニューゲームか制御
+     * 復元データから再開かニューゲームか制御。
      */
     function restoreOrStart() {
         // 保存データが存在しなかったりデータ復元に失敗した場合はニューゲーム
@@ -836,8 +853,8 @@
         }
 
         // 保存されているセクター
-        sectorKey = saved.sector;
-        cfg       = SECTORS[sectorKey];
+        sectorKey      = saved.sector;
+        selectedSector = SECTORS[sectorKey];
 
         // セルをグリッドに復元
         restoreCells(saved.cells);
@@ -852,7 +869,7 @@
 
         // ゲームオーバーから result を復元
         if (gameOver && result === null) {
-            result = (opened === cfg.rows * cfg.cols - cfg.mines) ? 'clear' : 'dead';
+            result = (opened === selectedSector.rows * selectedSector.cols - selectedSector.mines) ? 'clear' : 'dead';
         }
 
         // セクターボタン更新
@@ -893,7 +910,7 @@
     let press = null;
 
     /**
-     * セルの押下処理
+     * セルの押下処理。
      *
      * @param {Element} cell
      * @param {number} r
@@ -937,7 +954,7 @@
     }
 
     /**
-     * セルの押下状態を初期化
+     * セルの押下状態を初期化。
      */
     function cleanupPress() {
         if (press) {
@@ -953,7 +970,7 @@
     }
 
     /**
-     * セル押下イベントの離脱処理
+     * セル押下イベントの離脱処理。
      *
      * @param {Event} e
      */
@@ -984,7 +1001,7 @@
     });
 
     /**
-     * 【マウス操作時】押下したセルの情報を取得
+     * 【マウス操作時】押下したセルの情報を取得する。
      *
      * @param {Event} e
      * @return {{cellDiv: Element, r: number, c: number}|null}
@@ -1003,7 +1020,7 @@
     }
 
     /**
-     * 【マウス操作時】押下状態を初期化
+     * 【マウス操作時】押下状態を初期化する。
      */
     function resetMousePress() {
         if (mousePress) {
